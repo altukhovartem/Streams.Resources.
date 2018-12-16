@@ -19,10 +19,11 @@ namespace Streams.Resources
 
         public override long Position { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
-
         Stream _stream;
         string _key;
-        byte[] _buffer = new byte[Constants.BufferSize];
+        byte[] localBuffer = new byte[Constants.BufferSize];
+        Dictionary<string, IEnumerable<byte>> dict = new Dictionary<string, IEnumerable<byte>>();
+
 
         public ResourceReaderStream(Stream stream, string key)
         {
@@ -32,33 +33,114 @@ namespace Streams.Resources
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            // заводим переменную isKeyFound
-            // если isKeyFound == false, то
-            // SeekValue(); isKeyFound = true;
-            // если isKeyFound == true && IsValueFound == false, то 
-            // ReadFieldValue(...); IsValueFound = true;
-            // в противном случае возвращаем 0
+            bool isKeyFound = false;
+            int result;
+            int keyPosition = 0;
 
-
-            // if not key found yet: SeekValue();
-            // if value is not read yet: ReadFieldValue(...)
-            // else return 0;
+            while (_stream.Read(localBuffer, 0, localBuffer.Length) > 0)
+            {
+                isKeyFound = SeekValue(localBuffer);
+                if(isKeyFound)
+                {
+                    keyPosition = ReadFieldValue(localBuffer, buffer, keyPosition);
+                    return buffer.Length;
+                }
+                else
+                {
+                    continue;
+                }
+            }
 
             return 0;
         }
 
-        private void ReadFieldValue()
+
+        //public override int MyMethod(byte[] buffer, int offset, int count)
+        //{
+        //    byte[] localBuffer = new byte[Constants.BufferSize];
+        //    using (MemoryStream ms = new MemoryStream())
+        //    {
+        //        int read;
+        //        while ((read = _stream.Read(localBuffer, 0, localBuffer.Length)) > 0)
+        //        {
+        //            ms.Write(localBuffer, 0, read);
+        //        }
+        //        localStorage = ms.ToArray().ToList();
+        //    }
+
+        //    int lastPosition = 0;
+        //    bool IsKey = true;
+        //    string currentKey = string.Empty;
+        //    byte[] currentValue;
+
+        //    for (int i = 0; i < localStorage.Count(); i++)
+        //    {    
+        //        if(localStorage[i] == 0 && localStorage[i+1] == 1)
+        //        {
+        //            if(IsKey)
+        //            {
+                       
+        //                string keyString = Encoding.ASCII.GetString(localStorage.GetRange(lastPosition, i - lastPosition).ToArray()); // for testing purposes
+        //                dict.Add(keyString, null);
+        //                IsKey = false;
+        //            }
+        //            else
+        //            {
+        //                currentValue = localStorage.GetRange(lastPosition, i-lastPosition).ToArray();
+        //                string showStr = Encoding.ASCII.GetString(currentValue as Byte[]); // for testing purposes
+        //                dict[currentKey] = currentValue;
+        //                IsKey = true;
+        //            }
+        //            lastPosition = i + 2;
+        //        }
+        //    }
+
+
+        //    // if not key found yet: SeekValue();
+        //    // if value is not read yet: ReadFieldValue(...)
+        //    // else return 0;
+
+        //    if(dict.ContainsKey(_key))
+        //    {
+        //        return  Convert.ToInt32(dict[_key]);
+        //    }
+
+        //    return 0;
+        //}
+
+        private int ReadFieldValue(byte[] localBuffer, byte[] outputBuffer, int position)
         {
-            throw new NotImplementedException();
+            //for (int i = 0; i < localBuffer.Length; i++)
+            //{
+            //    if (localBuffer[i] == 0 && localBuffer[i + 1] == 1)
+            //    {
+            //        i = i + 1;
+            //    }
+            //    else
+            //        continue;
+            //}
+            int newPosition = 0;
+
+            for (int i = 0; i < outputBuffer.Length; i++)
+            {
+                outputBuffer[i] = localBuffer[position + i];
+                newPosition = position + i;
+            }
+            return newPosition;
+
         }
 
-        private void SeekValue()
+        private bool SeekValue(byte[] ArrayOfBytes)
         {
             // while not end of stream read next field pair, compare with key and skip value if it is not equal to key
-
-
-            //если не конец стрима, то
-            // то буферезируем стрим с позиции 0 размером 1024
+            byte[] KeyBytes = Encoding.ASCII.GetBytes(_key);
+            if (localBuffer.Except(KeyBytes).Any())
+            {
+                return true;
+            }
+            else
+                return false;
+            
 
         }
 
